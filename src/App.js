@@ -171,6 +171,10 @@ export default function App() {
   const startScanner = async () => {
     try {
       const videoElement = document.getElementById("reader");
+      if (videoElement) {
+        videoElement.style.display = "block";
+      }
+
       controlsRef.current = await codeReader.current.decodeFromVideoDevice(
         null,
         videoElement,
@@ -190,6 +194,10 @@ export default function App() {
   const stopScanner = () => {
     if (controlsRef.current) {
       controlsRef.current.stop();
+    }
+    const videoElement = document.getElementById("reader");
+    if (videoElement) {
+      videoElement.style.display = "none";
     }
   };
 
@@ -241,7 +249,7 @@ export default function App() {
         </div>
 
         {/* CAMERA */}
-        <video id="reader" style={{ width: "100%", marginTop: "15px" }}></video>
+        <video id="reader"></video>
 
         <div className="btn-center scan-btn-wrapper">
           <button className="post" onClick={startScanner}>Start Scan</button>

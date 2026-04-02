@@ -197,6 +197,19 @@ td {
   gap: 12px;
 }
 
+/* ========================= */
+/* CAMERA VIDEO */
+/* ========================= */
+#reader {
+  width: 100%;
+  max-height: 280px;
+  border-radius: 16px;
+  margin-top: 15px;
+  background: #000;
+  display: none;
+  object-fit: cover;
+}
+
 .delete,
 .post {
   width: 100%;
