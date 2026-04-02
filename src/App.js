@@ -180,8 +180,9 @@ export default function App() {
           }
         }
       );
-    } catch {
-      alert("Camera error");
+    } catch (error) {
+      alert(`Camera error: ${error.message || 'Unknown error'}`);
+      console.error('Camera scan failed:', error);
     }
   };
 
