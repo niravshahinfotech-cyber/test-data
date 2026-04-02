@@ -1,0 +1,295 @@
+/* ========================= */
+/* RESET */
+/* ========================= */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-size: 14px;
+  /* 🔥 BASE FONT */
+  color: #333;
+  background: #f5f7fa;
+}
+
+/* ========================= */
+/* HERO */
+/* ========================= */
+.hero {
+  width: 100%;
+  background: linear-gradient(135deg, #0072c6, #00a8e8);
+  color: white;
+  text-align: center;
+  padding: 50px 20px 140px;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: 22px;
+  /* 🔥 FIXED */
+  font-weight: 600;
+}
+
+.hero p {
+  margin-top: 6px;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+/* ========================= */
+/* CARD */
+/* ========================= */
+.card {
+  width: 100%;
+  margin: -100px 0 30px;
+  padding: 24px 20px;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.12);
+}
+
+/* ========================= */
+/* TITLE */
+/* ========================= */
+.title {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 18px;
+  /* 🔥 STANDARD */
+  font-weight: 600;
+}
+
+/* ========================= */
+/* FORM */
+/* ========================= */
+.form-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-left,
+.form-right {
+  width: 100%;
+}
+
+/* ========================= */
+/* FLOATING FIELD */
+/* ========================= */
+.floating {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+/* INPUT */
+.floating input,
+.floating select {
+  width: 100%;
+  padding: 22px 16px 10px 50px;
+  border-radius: 16px;
+  border: 1px solid #dcdcdc;
+  background: #ffffff;
+  font-size: 14px;
+  /* 🔥 CONSISTENT */
+  transition: all 0.25s ease;
+}
+
+/* HOVER */
+.floating input:hover,
+.floating select:hover {
+  border-color: #bdbdbd;
+}
+
+/* FOCUS */
+.floating input:focus,
+.floating select:focus {
+  border-color: #0072c6;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 114, 198, 0.08);
+}
+
+/* ========================= */
+/* ICON */
+/* ========================= */
+.icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+}
+
+/* ========================= */
+/* LABEL */
+/* ========================= */
+.floating label {
+  position: absolute;
+  left: 50px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  /* 🔥 STANDARD LABEL */
+  color: #9aa0a6;
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+/* FLOAT EFFECT */
+.floating input:focus+label,
+.floating input:not(:placeholder-shown)+label,
+.floating select:valid+label {
+  top: 8px;
+  transform: none;
+  font-size: 11px;
+  color: #0072c6;
+  background: #ffffff;
+  padding: 0 6px;
+}
+
+/* ========================= */
+/* SECTION TITLE */
+/* ========================= */
+h4 {
+  margin-top: 28px;
+  margin-bottom: 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* ========================= */
+/* TABLE */
+/* ========================= */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  min-width: 650px;
+  border-collapse: collapse;
+}
+
+th {
+  background: #eaf2fb;
+  color: #0072c6;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+th,
+td {
+  padding: 12px;
+  border: 1px solid #eee;
+  font-size: 13px;
+}
+
+/* ========================= */
+/* BUTTON */
+/* ========================= */
+.btn-center {
+  margin-top: 24px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.delete,
+.post {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  /* 🔥 STANDARD */
+  cursor: pointer;
+}
+
+.delete {
+  background: #ff3b30;
+  color: white;
+}
+
+.post {
+  background: linear-gradient(90deg, #0072c6, #0056a4);
+  color: white;
+}
+
+/* ========================= */
+/* TABLET */
+/* ========================= */
+@media (min-width: 600px) {
+  .card {
+    max-width: 750px;
+    margin: -100px auto 40px;
+  }
+
+  .form-wrapper {
+    flex-direction: row;
+    gap: 20px;
+  }
+
+  .form-left {
+    width: 50%;
+  }
+
+  .form-right {
+    width: 50%;
+  }
+
+  .btn-center {
+    flex-direction: row;
+    justify-content: center;
+    margin: 30px 0 35px;
+    /* 🔥 better spacing */
+  }
+
+  .delete,
+  .post {
+    width: auto;
+    padding: 10px 24px;
+  }
+}
+
+/* ========================= */
+/* DESKTOP */
+/* ========================= */
+@media (min-width: 1024px) {
+  .card {
+    max-width: 1100px;
+    margin: -130px auto 50px;
+    padding: 30px;
+  }
+
+  .hero {
+    padding: 70px 20px 160px;
+  }
+
+  .hero h1 {
+    font-size: 28px;
+  }
+
+  .title {
+    font-size: 20px;
+  }
+}
+
+/* ========================= */
+/* MOBILE FIX */
+/* ========================= */
+@media (max-width: 768px) {
+  .form-wrapper {
+    gap: 0;
+  }
+}
+
+/* 🔥 HIDE CAMERA SCAN BUTTON ON DESKTOP */
+/*
+@media (min-width: 1024px) {
+  .scan-btn-wrapper {
+    display: none;
+  }
+} */

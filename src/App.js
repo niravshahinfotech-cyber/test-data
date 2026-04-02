@@ -1,25 +1,384 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useEffect, useRef } from "react";
+import { BrowserMultiFormatReader } from "@zxing/browser";
+import "./style.css";
 
-function App() {
+/* ================= MASTER DATA ================= */
+
+const processZoneMap = {
+  "Batch Making": ["A"],
+  "Dyeing": ["A", "B"]
+};
+
+const productionMaster = {
+  "005100284174": {
+    bigRolls: ["5100296880", "90014688"],
+    material: "KFFRPCTN01241S",
+    description: "24'S CTN PD 1X1RIB"
+  },
+  "005100284175": {
+    bigRolls: ["90014689", "90014690"]
+  }
+};
+
+/* ================= SHIFT ================= */
+const getShift = () => {
+  const hour = new Date().getHours();
+  if (hour >= 6 && hour < 14) return "1";
+  if (hour >= 14 && hour < 22) return "2";
+  return "3";
+};
+
+/* ================= INITIAL FORM ================= */
+const getInitialForm = () => {
+  const defaultProcess = "Batch Making";
+  const zones = processZoneMap[defaultProcess];
+
+  return {
+    date: new Date().toISOString().split("T")[0],
+    shift: getShift(),
+    user: "System User",
+    process: defaultProcess,
+    zone: zones.length === 1 ? zones[0] : "",
+    trolleyNo: "",
+    productionOrder: "",
+    qty: "",
+    bigRoll: "",
+    material: "",
+    description: "",
+    remark: ""
+  };
+};
+
+/* ================= STATIC DEFAULT TABLE ================= */
+const defaultData = [
+  {
+    trolleyNo: "B-101",
+    productionOrder: "005100284174",
+    qty: "55",
+    bigRoll: "90014688",
+    material: "KFFRPCTN01241S",
+    description: "24'S CTN PD 1X1RIB",
+    remark: ""
+  }
+];
+
+export default function App() {
+
+  const [form, setForm] = useState(getInitialForm());
+
+  // 🔥 MERGE DEFAULT + LOCAL STORAGE
+  const [data, setData] = useState(() => {
+    try {
+      const stored = localStorage.getItem("wipData");
+      const parsed = stored ? JSON.parse(stored) : [];
+      return [...defaultData, ...parsed];
+    } catch {
+      return defaultData;
+    }
+  });
+
+  const [selectedRows, setSelectedRows] = useState([]);
+
+  const codeReader = useRef(new BrowserMultiFormatReader());
+  const controlsRef = useRef(null);
+
+  /* ================= SAVE ONLY NEW DATA ================= */
+  useEffect(() => {
+    const newData = data.slice(defaultData.length);
+    localStorage.setItem("wipData", JSON.stringify(newData));
+  }, [data]);
+
+  /* ================= HANDLE CHANGE ================= */
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    let updated = { ...form, [name]: value };
+
+    // Zone auto
+    if (name === "process") {
+      const zones = processZoneMap[value] || [];
+      updated.zone = zones.length === 1 ? zones[0] : "";
+    }
+
+    // Production Order mapping
+    if (name === "productionOrder") {
+      const record = productionMaster[value];
+
+      if (record) {
+        updated.bigRoll =
+          record.bigRolls.length === 1 ? record.bigRolls[0] : "";
+        updated.material = record.material || "";
+        updated.description = record.description || "";
+      } else {
+        updated.bigRoll = "";
+        updated.material = "";
+        updated.description = "";
+      }
+    }
+
+    setForm(updated);
+  };
+
+  /* ================= COMMON SCAN LOGIC ================= */
+  const processScan = (raw) => {
+    const numbers = raw.replace(/\D/g, "");
+    let finalPO = "";
+
+    // Production Order
+    if (numbers.length === 12) {
+      finalPO = numbers;
+    }
+    // Big Roll
+    else if (numbers.length >= 8 && numbers.length <= 10) {
+      const found = Object.entries(productionMaster).find(([po, data]) =>
+        data.bigRolls?.includes(numbers)
+      );
+
+      if (found) {
+        finalPO = found[0];
+      } else {
+        alert("Big Roll not mapped");
+        return;
+      }
+    } else {
+      alert("Invalid barcode");
+      return;
+    }
+
+    handleChange({
+      target: {
+        name: "productionOrder",
+        value: finalPO
+      }
+    });
+  };
+
+  /* ================= FILE UPLOAD ================= */
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const result = await codeReader.current.decodeFromImageUrl(
+        URL.createObjectURL(file)
+      );
+      processScan(result.getText());
+    } catch {
+      alert("Barcode not detected");
+    }
+  };
+
+  /* ================= CAMERA ================= */
+  const startScanner = async () => {
+    try {
+      controlsRef.current = await codeReader.current.decodeFromVideoDevice(
+        null,
+        "reader",
+        (result) => {
+          if (result) {
+            processScan(result.getText());
+            stopScanner();
+          }
+        }
+      );
+    } catch {
+      alert("Camera error");
+    }
+  };
+
+  const stopScanner = () => {
+    if (controlsRef.current) {
+      controlsRef.current.stop();
+    }
+  };
+
+  /* ================= ADD ================= */
+  const handleAdd = () => {
+    if (!form.productionOrder || !form.qty) {
+      alert("Production Order & Qty required");
+      return;
+    }
+
+    setData(prev => [...prev, form]);
+    setForm(getInitialForm());
+  };
+
+  /* ================= DELETE ================= */
+  const handleDelete = () => {
+    const updated = data.filter((_, i) => !selectedRows.includes(i));
+    setData(updated);
+    setSelectedRows([]);
+  };
+
+  const handleCheckbox = (index) => {
+    if (selectedRows.includes(index)) {
+      setSelectedRows(selectedRows.filter(i => i !== index));
+    } else {
+      setSelectedRows([...selectedRows, index]);
+    }
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="app">
+
+      {/* HERO */}
+      <div className="hero">
+        <h1>Easy Process with Online Registration</h1>
+        <p>Fast • Secure • Paperless</p>
+      </div>
+
+      {/* CARD */}
+      <div className="card">
+
+        <h3 className="title">Knits Fabric Process Tracking</h3>
+
+        {/* UPLOAD */}
+        <div className="floating">
+          <span className="icon">📤</span>
+          <input type="file" accept="image/*" onChange={handleFileUpload} />
+          <label>Upload Barcode</label>
+        </div>
+
+        {/* CAMERA */}
+        <div id="reader" style={{ width: "100%", marginTop: "15px" }}></div>
+
+        <div className="btn-center scan-btn-wrapper">
+          <button className="post" onClick={startScanner}>Start Scan</button>
+       {/*  <button className="delete" onClick={stopScanner}>Stop Scan</button> */} 
+        </div>
+
+        {/* FORM */}
+        <div className="form-wrapper">
+
+          <div className="form-left">
+
+            <div className="floating">
+              <span className="icon">📅</span>
+              <input type="date" value={form.date} readOnly />
+              <label>Date</label>
+            </div>
+
+            <div className="floating">
+              <span className="icon">👤</span>
+              <input value={form.user} readOnly />
+              <label>User</label>
+            </div>
+
+            <div className="floating">
+              <span className="icon">📍</span>
+              <select name="zone" value={form.zone} onChange={handleChange}>
+                <option value=""></option>
+                <option>A</option>
+                <option>B</option>
+              </select>
+              <label>Zone</label>
+            </div>
+
+            <div className="floating">
+              <span className="icon">🚚</span>
+              <input name="trolleyNo" value={form.trolleyNo} onChange={handleChange} placeholder=" " />
+              <label>Trolley No</label>
+            </div>
+
+            <div className="floating">
+              <span className="icon">📦</span>
+              <input value={form.productionOrder} readOnly />
+              <label>Production Order</label>
+            </div>
+
+            <div className="floating">
+              <span className="icon">🔢</span>
+              <input name="qty" value={form.qty} onChange={handleChange} placeholder=" " />
+              <label>Individual Capacity</label>
+            </div>
+
+          </div>
+
+          <div className="form-right">
+
+            <div className="floating">
+              <span className="icon">⏱</span>
+              <input value={form.shift} readOnly />
+              <label>Shift</label>
+            </div>
+
+            <div className="floating">
+              <span className="icon">⚙️</span>
+              <select name="process" value={form.process} onChange={handleChange}>
+                <option value=""></option>
+                <option>Batch Making</option>
+                <option>Dyeing</option>
+              </select>
+              <label>Process</label>
+            </div>
+
+            <div className="floating">
+              <span className="icon">📝</span>
+              <input name="remark" value={form.remark} onChange={handleChange} placeholder=" " />
+              <label>Remark</label>
+            </div>
+
+            <div className="floating">
+              <span className="icon">🧵</span>
+              <input value={form.bigRoll} readOnly />
+              <label>Big Roll</label>
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* TABLE */}
+        <h4>Scanned Data</h4>
+
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>Trolley No</th>
+                <th>Remarks</th>
+                <th>Prod Order</th>
+                <th>Qty</th>
+                <th>Big Roll</th>
+                <th>Material</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {data.map((item, index) => (
+                <tr key={index}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.includes(index)}
+                      onChange={() => handleCheckbox(index)}
+                    />
+                  </td>
+                  <td>{item.trolleyNo}</td>
+                  <td>{item.remark}</td>
+                  <td>{item.productionOrder}</td>
+                  <td>{item.qty}</td>
+                  <td>{item.bigRoll}</td>
+                  <td>{item.material}</td>
+                  <td>{item.description}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* BUTTONS */}
+        <div className="btn-center">
+          <button className="delete" onClick={handleDelete}>
+            Delete Selected
+          </button>
+          <button className="post" onClick={handleAdd}>
+            Post
+          </button>
+        </div>
+
+      </div>
     </div>
   );
 }
-
-export default App;
