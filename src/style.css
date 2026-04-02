@@ -139,7 +139,9 @@ body {
 /* FLOAT EFFECT */
 .floating input:focus+label,
 .floating input:not(:placeholder-shown)+label,
-.floating select:valid+label {
+.floating input[readonly]+label,
+.floating select:valid+label,
+.floating select:not([value=""]) + label {
   top: 8px;
   transform: none;
   font-size: 11px;
