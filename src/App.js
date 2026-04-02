@@ -261,7 +261,7 @@ export default function App() {
 
           <div className="form-left">
 
-            <div className="floating">
+            <div className="floating readonly">
               <span className="icon">📅</span>
               <input type="date" value={form.date} readOnly placeholder=" " />
               <label>Date</label>

@@ -150,6 +150,16 @@ body {
   padding: 0 6px;
 }
 
+/* Always float readonly labels */
+.floating.readonly label {
+  top: 8px;
+  transform: none;
+  font-size: 11px;
+  color: #0072c6;
+  background: #ffffff;
+  padding: 0 6px;
+}
+
 /* ========================= */
 /* SECTION TITLE */
 /* ========================= */
