@@ -170,9 +170,10 @@ export default function App() {
   /* ================= CAMERA ================= */
   const startScanner = async () => {
     try {
+      const videoElement = document.getElementById("reader");
       controlsRef.current = await codeReader.current.decodeFromVideoDevice(
         null,
-        "reader",
+        videoElement,
         (result) => {
           if (result) {
             processScan(result.getText());
@@ -240,7 +241,7 @@ export default function App() {
         </div>
 
         {/* CAMERA */}
-        <div id="reader" style={{ width: "100%", marginTop: "15px" }}></div>
+        <video id="reader" style={{ width: "100%", marginTop: "15px" }}></video>
 
         <div className="btn-center scan-btn-wrapper">
           <button className="post" onClick={startScanner}>Start Scan</button>
