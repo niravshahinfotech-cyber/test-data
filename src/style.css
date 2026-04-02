@@ -166,7 +166,7 @@ body {
 @media (max-width: 480px) {
   .floating input,
   .floating select {
-    padding: 16px 14px 8px 45px;
+    /*padding: 16px 14px 8px 45px;*/
     font-size: 14px;
   }
 
