@@ -261,9 +261,15 @@ export default function App() {
 
           <div className="form-left">
 
-            <div className="floating readonly">
+            <div className="floating">
               <span className="icon">📅</span>
-              <input type="date" value={form.date} readOnly placeholder=" " />
+              <input
+                type="date"
+                name="date"
+                value={form.date}
+                onChange={handleChange}
+                placeholder=" "
+              />
               <label>Date</label>
             </div>
 
