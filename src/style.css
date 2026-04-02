@@ -139,9 +139,11 @@ body {
 /* FLOAT EFFECT */
 .floating input:focus+label,
 .floating input:not(:placeholder-shown)+label,
+.floating input:not([value=""])+label,
 .floating input[readonly]+label,
 .floating select:valid+label,
-.floating select:not([value=""]) + label {
+.floating select:not([value=""]) + label,
+.floating select:not([value=""])+label {
   top: 8px;
   transform: none;
   font-size: 11px;
@@ -158,6 +160,25 @@ body {
   color: #0072c6;
   background: #ffffff;
   padding: 0 6px;
+}
+
+/* small device touch-safe adjustments */
+@media (max-width: 480px) {
+  .floating input,
+  .floating select {
+    padding: 16px 14px 8px 45px;
+    font-size: 14px;
+  }
+
+  .floating .icon {
+    left: 12px;
+    font-size: 14px;
+  }
+
+  .floating label {
+    left: 44px;
+    line-height: 1.2;
+  }
 }
 
 /* ========================= */
