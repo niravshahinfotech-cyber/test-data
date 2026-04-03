@@ -78,6 +78,7 @@ export default function App() {
   });
 
   const [selectedRows, setSelectedRows] = useState([]);
+  const [scanTarget, setScanTarget] = useState("productionOrder"); // Track which field to scan to
 
   const codeReader = useRef(new BrowserMultiFormatReader());
   const controlsRef = useRef(null);
@@ -124,10 +125,10 @@ export default function App() {
       return;
     }
 
-    // Accept any barcode number as production order
+    // Accept any barcode number for the target field
     handleChange({
       target: {
-        name: "productionOrder",
+        name: scanTarget,
         value: numbers
       }
     });
@@ -223,17 +224,55 @@ export default function App() {
         <h3 className="title">Knits Fabric Process Tracking</h3>
 
         {/* UPLOAD */}
-        <div className="floating">
-          <span className="icon">📤</span>
-          <input type="file" accept="image/*" onChange={handleFileUpload} />
-          <label>Upload Barcode</label>
+        <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
+          <div className="floating" style={{ flex: 1, marginBottom: 0 }}>
+            <span className="icon">📤</span>
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={(e) => {
+                setScanTarget("productionOrder");
+                handleFileUpload(e);
+              }}
+            />
+            <label>Upload PO</label>
+          </div>
+          <div className="floating" style={{ flex: 1, marginBottom: 0 }}>
+            <span className="icon">📤</span>
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={(e) => {
+                setScanTarget("trolleyNo");
+                handleFileUpload(e);
+              }}
+            />
+            <label>Upload Trolley</label>
+          </div>
         </div>
 
         {/* CAMERA */}
         <video id="reader"></video>
 
         <div className="btn-center scan-btn-wrapper">
-          <button className="post" onClick={startScanner}>Start Scan</button>
+          <button 
+            className="post" 
+            onClick={() => {
+              setScanTarget("productionOrder");
+              startScanner();
+            }}
+          >
+            Scan Production Order
+          </button>
+          <button 
+            className="post" 
+            onClick={() => {
+              setScanTarget("trolleyNo");
+              startScanner();
+            }}
+          >
+            Scan Trolley No
+          </button>
        {/*  <button className="delete" onClick={stopScanner}>Stop Scan</button> */} 
         </div>
 
