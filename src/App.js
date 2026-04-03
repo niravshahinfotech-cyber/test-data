@@ -144,7 +144,12 @@ export default function App() {
         URL.createObjectURL(file)
       );
       processScan(result.getText(), target);
-      alert("✅ Upload Successful!");
+      
+      if (target === "productionOrder") {
+        alert("✅ PO Number Updated!");
+      } else if (target === "trolleyNo") {
+        alert("✅ Trolley Number Updated!");
+      }
     } catch {
       alert("❌ Barcode not detected");
     }
@@ -164,7 +169,13 @@ export default function App() {
         (result) => {
           if (result) {
             processScan(result.getText(), target);
-            alert("✅ Scan Successful!");
+            
+            if (target === "productionOrder") {
+              alert("✅ PO Number Scanned!");
+            } else if (target === "trolleyNo") {
+              alert("✅ Trolley Number Scanned!");
+            }
+            
             stopScanner();
           }
         }
