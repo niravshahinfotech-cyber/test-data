@@ -108,11 +108,8 @@ export default function App() {
           record.bigRolls.length === 1 ? record.bigRolls[0] : "";
         updated.material = record.material || "";
         updated.description = record.description || "";
-      } else {
-        updated.bigRoll = "";
-        updated.material = "";
-        updated.description = "";
       }
+      // If not in master data, leave fields empty for manual entry
     }
 
     setForm(updated);
@@ -121,33 +118,17 @@ export default function App() {
   /* ================= COMMON SCAN LOGIC ================= */
   const processScan = (raw) => {
     const numbers = raw.replace(/\D/g, "");
-    let finalPO = "";
-
-    // Production Order
-    if (numbers.length === 12) {
-      finalPO = numbers;
-    }
-    // Big Roll
-    else if (numbers.length >= 8 && numbers.length <= 10) {
-      const found = Object.entries(productionMaster).find(([po, data]) =>
-        data.bigRolls?.includes(numbers)
-      );
-
-      if (found) {
-        finalPO = found[0];
-      } else {
-        alert("Big Roll not mapped");
-        return;
-      }
-    } else {
+    
+    if (!numbers) {
       alert("Invalid barcode");
       return;
     }
 
+    // Accept any barcode number as production order
     handleChange({
       target: {
         name: "productionOrder",
-        value: finalPO
+        value: numbers
       }
     });
   };
@@ -297,7 +278,7 @@ export default function App() {
 
             <div className="floating">
               <span className="icon">📦</span>
-              <input value={form.productionOrder} readOnly />
+              <input name="productionOrder" value={form.productionOrder} onChange={handleChange} placeholder=" " />
               <label>Production Order</label>
             </div>
 
@@ -335,7 +316,7 @@ export default function App() {
 
             <div className="floating">
               <span className="icon">🧵</span>
-              <input value={form.bigRoll} readOnly />
+              <input name="bigRoll" value={form.bigRoll} onChange={handleChange} placeholder=" " />
               <label>Big Roll</label>
             </div>
 
