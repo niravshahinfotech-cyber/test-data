@@ -117,7 +117,7 @@ export default function App() {
   };
 
   /* ================= COMMON SCAN LOGIC ================= */
-  const processScan = (raw) => {
+  const processScan = (raw, target) => {
     const numbers = raw.replace(/\D/g, "");
     
     if (!numbers) {
@@ -128,14 +128,14 @@ export default function App() {
     // Accept any barcode number for the target field
     handleChange({
       target: {
-        name: scanTarget,
+        name: target,
         value: numbers
       }
     });
   };
 
   /* ================= FILE UPLOAD ================= */
-  const handleFileUpload = async (e) => {
+  const handleFileUpload = async (e, target) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -143,14 +143,15 @@ export default function App() {
       const result = await codeReader.current.decodeFromImageUrl(
         URL.createObjectURL(file)
       );
-      processScan(result.getText());
+      processScan(result.getText(), target);
+      alert("✅ Upload Successful!");
     } catch {
-      alert("Barcode not detected");
+      alert("❌ Barcode not detected");
     }
   };
 
   /* ================= CAMERA ================= */
-  const startScanner = async () => {
+  const startScanner = async (target) => {
     try {
       const videoElement = document.getElementById("reader");
       if (videoElement) {
@@ -162,7 +163,8 @@ export default function App() {
         videoElement,
         (result) => {
           if (result) {
-            processScan(result.getText());
+            processScan(result.getText(), target);
+            alert("✅ Scan Successful!");
             stopScanner();
           }
         }
@@ -230,10 +232,7 @@ export default function App() {
             <input 
               type="file" 
               accept="image/*" 
-              onChange={(e) => {
-                setScanTarget("productionOrder");
-                handleFileUpload(e);
-              }}
+              onChange={(e) => handleFileUpload(e, "productionOrder")}
             />
             <label>Upload PO</label>
           </div>
@@ -242,10 +241,7 @@ export default function App() {
             <input 
               type="file" 
               accept="image/*" 
-              onChange={(e) => {
-                setScanTarget("trolleyNo");
-                handleFileUpload(e);
-              }}
+              onChange={(e) => handleFileUpload(e, "trolleyNo")}
             />
             <label>Upload Trolley</label>
           </div>
@@ -257,19 +253,13 @@ export default function App() {
         <div className="btn-center scan-btn-wrapper">
           <button 
             className="post" 
-            onClick={() => {
-              setScanTarget("productionOrder");
-              startScanner();
-            }}
+            onClick={() => startScanner("productionOrder")}
           >
             Scan Production Order
           </button>
           <button 
             className="post" 
-            onClick={() => {
-              setScanTarget("trolleyNo");
-              startScanner();
-            }}
+            onClick={() => startScanner("trolleyNo")}
           >
             Scan Trolley No
           </button>
