@@ -1,4 +1,45 @@
 /* ========================= */
+/* NOTIFICATION TOAST */
+/* ========================= */
+.notification {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 16px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 9999;
+  max-width: 90%;
+  word-wrap: break-word;
+  animation: slideDown 0.3s ease-out;
+}
+
+.notification.success {
+  background: #10b981;
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.notification.error {
+  background: #ef4444;
+  color: white;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ========================= */
 /* RESET */
 /* ========================= */
 * {
@@ -228,6 +269,14 @@ td {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.scan-btn-wrapper {
+  flex-direction: row;
+}
+
+.scan-btn-wrapper button {
+  flex: 1;
 }
 
 /* ========================= */

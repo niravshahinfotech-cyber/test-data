@@ -78,10 +78,18 @@ export default function App() {
   });
 
   const [selectedRows, setSelectedRows] = useState([]);
-  const [scanTarget, setScanTarget] = useState("productionOrder"); // Track which field to scan to
+  const [notification, setNotification] = useState({ message: "", type: "" });
 
   const codeReader = useRef(new BrowserMultiFormatReader());
   const controlsRef = useRef(null);
+
+  /* ================= SHOW NOTIFICATION ================= */
+  const showNotification = (message, type = "success") => {
+    setNotification({ message, type });
+    setTimeout(() => {
+      setNotification({ message: "", type: "" });
+    }, 3000);
+  };
 
   /* ================= SAVE ONLY NEW DATA ================= */
   useEffect(() => {
@@ -121,7 +129,7 @@ export default function App() {
     const numbers = raw.replace(/\D/g, "");
     
     if (!numbers) {
-      alert("Invalid barcode");
+      showNotification("Invalid barcode", "error");
       return;
     }
 
@@ -146,12 +154,12 @@ export default function App() {
       processScan(result.getText(), target);
       
       if (target === "productionOrder") {
-        alert("✅ PO Number Updated!");
+        showNotification("✅ PO Number Updated!");
       } else if (target === "trolleyNo") {
-        alert("✅ Trolley Number Updated!");
+        showNotification("✅ Trolley Number Updated!");
       }
     } catch {
-      alert("❌ Barcode not detected");
+      showNotification("❌ Barcode not detected", "error");
     }
   };
 
@@ -171,9 +179,9 @@ export default function App() {
             processScan(result.getText(), target);
             
             if (target === "productionOrder") {
-              alert("✅ PO Number Scanned!");
+              showNotification("✅ PO Number Scanned!");
             } else if (target === "trolleyNo") {
-              alert("✅ Trolley Number Scanned!");
+              showNotification("✅ Trolley Number Scanned!");
             }
             
             stopScanner();
@@ -181,7 +189,7 @@ export default function App() {
         }
       );
     } catch (error) {
-      alert(`Camera error: ${error.message || 'Unknown error'}`);
+      showNotification(`Camera error: ${error.message || 'Unknown error'}`, "error");
       console.error('Camera scan failed:', error);
     }
   };
@@ -199,12 +207,13 @@ export default function App() {
   /* ================= ADD ================= */
   const handleAdd = () => {
     if (!form.productionOrder || !form.qty) {
-      alert("Production Order & Qty required");
+      showNotification("Production Order & Qty required", "error");
       return;
     }
 
     setData(prev => [...prev, form]);
     setForm(getInitialForm());
+    showNotification("Record posted successfully!", "success");
   };
 
   /* ================= DELETE ================= */
@@ -224,6 +233,13 @@ export default function App() {
 
   return (
     <div className="app">
+
+      {/* NOTIFICATION TOAST */}
+      {notification.message && (
+        <div className={`notification ${notification.type}`}>
+          {notification.message}
+        </div>
+      )}
 
       {/* HERO */}
       <div className="hero">
