@@ -79,6 +79,28 @@ export default function App() {
 
   const [selectedRows, setSelectedRows] = useState([]);
   const [notification, setNotification] = useState({ message: "", type: "" });
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanTarget, setScanTarget] = useState("");
+  const [editIndex, setEditIndex] = useState(null);
+  const [scanEvents, setScanEvents] = useState([]);
+
+  const dailyGoal = 16;
+  const totalEntries = data.length;
+  const progressPercent = totalEntries ? Math.min(100, Math.round((totalEntries / dailyGoal) * 100)) : 0;
+  const dataCompleteness = totalEntries
+    ? Math.round(
+        (data.filter((item) => item.trolleyNo && item.productionOrder && item.qty).length / totalEntries) * 100
+      )
+    : 0;
+  const scannedPOCount = data.filter((item) => item.productionOrder).length;
+  const uniqueTrolleys = new Set(data.filter((item) => item.trolleyNo).map((item) => item.trolleyNo)).size;
+  const activeScanGoal = scanTarget
+    ? scanTarget === "productionOrder"
+      ? "PO Scan"
+      : "Trolley Scan"
+    : "Idle";
+  const recentScans = [...scanEvents].reverse().slice(0, 5);
+  const scanActivityCount = scanEvents.length;
 
   const codeReader = useRef(new BrowserMultiFormatReader());
   const controlsRef = useRef(null);
@@ -125,6 +147,11 @@ export default function App() {
   };
 
   /* ================= COMMON SCAN LOGIC ================= */
+  const recordScanEvent = (label) => {
+    const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    setScanEvents((prev) => [...prev, { label, time }].slice(-12));
+  };
+
   const processScan = (raw, target) => {
     const numbers = raw.replace(/\D/g, "");
     
@@ -132,6 +159,8 @@ export default function App() {
       showNotification("Invalid barcode", "error");
       return;
     }
+
+    recordScanEvent(`Scanned ${target === "productionOrder" ? "PO" : "Trolley"}: ${numbers}`);
 
     // Accept any barcode number for the target field
     handleChange({
@@ -155,8 +184,10 @@ export default function App() {
       
       if (target === "productionOrder") {
         showNotification("✅ PO Number Updated!");
+        recordScanEvent("Uploaded PO barcode image");
       } else if (target === "trolleyNo") {
         showNotification("✅ Trolley Number Updated!");
+        recordScanEvent("Uploaded trolley barcode image");
       }
     } catch {
       showNotification("❌ Barcode not detected", "error");
@@ -166,9 +197,17 @@ export default function App() {
   /* ================= CAMERA ================= */
   const startScanner = async (target) => {
     try {
+      setScannerOpen(true);
+      setScanTarget(target);
+
       const videoElement = document.getElementById("reader");
       if (videoElement) {
         videoElement.style.display = "block";
+      }
+
+      if (controlsRef.current) {
+        controlsRef.current.stop();
+        controlsRef.current = null;
       }
 
       controlsRef.current = await codeReader.current.decodeFromVideoDevice(
@@ -177,30 +216,46 @@ export default function App() {
         (result) => {
           if (result) {
             processScan(result.getText(), target);
-            
+
             if (target === "productionOrder") {
               showNotification("✅ PO Number Scanned!");
             } else if (target === "trolleyNo") {
               showNotification("✅ Trolley Number Scanned!");
             }
-            
+
             stopScanner();
           }
         }
       );
     } catch (error) {
+      stopScanner();
       showNotification(`Camera error: ${error.message || 'Unknown error'}`, "error");
       console.error('Camera scan failed:', error);
     }
   };
 
   const stopScanner = () => {
-    if (controlsRef.current) {
-      controlsRef.current.stop();
+    try {
+      if (controlsRef.current) {
+        if (typeof controlsRef.current.stop === "function") {
+          controlsRef.current.stop();
+        }
+        controlsRef.current = null;
+      }
+    } catch (error) {
+      console.error("Error stopping scanner:", error);
     }
+
+    setScannerOpen(false);
+    setScanTarget("");
+
     const videoElement = document.getElementById("reader");
     if (videoElement) {
       videoElement.style.display = "none";
+      if (videoElement.srcObject) {
+        videoElement.srcObject.getTracks().forEach((track) => track.stop());
+        videoElement.srcObject = null;
+      }
     }
   };
 
@@ -211,9 +266,34 @@ export default function App() {
       return;
     }
 
-    setData(prev => [...prev, form]);
+    if (editIndex !== null) {
+      setData(prev => prev.map((item, index) => index === editIndex ? form : item));
+      setEditIndex(null);
+      showNotification("Record updated successfully!", "success");
+      recordScanEvent("Updated entry");
+    } else {
+      setData(prev => [...prev, form]);
+      showNotification("Record posted successfully!", "success");
+      recordScanEvent("Posted entry");
+    }
+
     setForm(getInitialForm());
-    showNotification("Record posted successfully!", "success");
+  };
+
+  const handleEdit = (index) => {
+    const row = data[index] || {};
+    setForm({
+      ...getInitialForm(),
+      ...row
+    });
+    setEditIndex(index);
+    showNotification("Edit mode enabled. Update the form and click Post.", "success");
+  };
+
+  const handleCancelEdit = () => {
+    setEditIndex(null);
+    setForm(getInitialForm());
+    showNotification("Edit cancelled.", "success");
   };
 
   /* ================= DELETE ================= */
@@ -242,193 +322,291 @@ export default function App() {
       )}
 
       {/* HERO */}
-      <div className="hero">
-        <h1>Easy Process with Online Registration</h1>
-        <p>Fast • Secure • Paperless</p>
+      <div className="hero hero-simple">
+        <div className="hero-copy">
+          <h1>Smart Fabric Entry Generator</h1>
+          <p>Scan, edit, and post production entries in a clean modern interface.</p>
+        </div>
       </div>
 
       {/* CARD */}
       <div className="card">
 
-        <h3 className="title">Knits Fabric Process Tracking</h3>
-
-        {/* UPLOAD */}
-        <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
-          <div className="floating" style={{ flex: 1, marginBottom: 0 }}>
-            <span className="icon">📤</span>
-            <input 
-              type="file" 
-              accept="image/*" 
-              onChange={(e) => handleFileUpload(e, "productionOrder")}
-            />
-            <label>Upload PO</label>
+        <div className="card-header">
+          <div>
+            <h3 className="title">Knits Fabric Process Tracking</h3>
+            <p className="subtitle">Modern paperless tracking for fabric production, barcode scanning, and batch flow control.</p>
           </div>
-          <div className="floating" style={{ flex: 1, marginBottom: 0 }}>
-            <span className="icon">📤</span>
-            <input 
-              type="file" 
-              accept="image/*" 
-              onChange={(e) => handleFileUpload(e, "trolleyNo")}
-            />
-            <label>Upload Trolley</label>
+          <div className="badge-row">
+            <span className="badge">Total entries: {data.length}</span>
+            <span className="badge">Selected: {selectedRows.length}</span>
+            <span className="badge">Scanner: {scannerOpen ? "Active" : "Closed"}</span>
           </div>
         </div>
 
-        {/* CAMERA */}
-        <video id="reader"></video>
-
-        <div className="btn-center scan-btn-wrapper">
-          <button 
-            className="post" 
-            onClick={() => startScanner("productionOrder")}
-          >
-            Scan Production Order
-          </button>
-          <button 
-            className="post" 
-            onClick={() => startScanner("trolleyNo")}
-          >
-            Scan Trolley No
-          </button>
-       {/*  <button className="delete" onClick={stopScanner}>Stop Scan</button> */} 
+        <div className="summary-grid">
+          <div className="summary-card">
+            <span className="summary-icon">📊</span>
+            <div>
+              <strong>{totalEntries}</strong>
+              <p>Total entries</p>
+            </div>
+          </div>
+          <div className="summary-card">
+            <span className="summary-icon">📦</span>
+            <div>
+              <strong>{scannedPOCount}</strong>
+              <p>POs recorded</p>
+            </div>
+          </div>
+          <div className="summary-card">
+            <span className="summary-icon">🚚</span>
+            <div>
+              <strong>{uniqueTrolleys}</strong>
+              <p>Unique trolleys</p>
+            </div>
+          </div>
+          <div className="summary-card">
+            <span className="summary-icon">🎯</span>
+            <div>
+              <strong>{activeScanGoal}</strong>
+              <p>Current goal</p>
+            </div>
+          </div>
         </div>
 
-        {/* FORM */}
-        <div className="form-wrapper">
-
-          <div className="form-left">
-
-            <div className="floating">
-              <span className="icon">📅</span>
-              <input
-                type="date"
-                name="date"
-                value={form.date}
-                onChange={handleChange}
-                placeholder=" "
-              />
-              <label>Date</label>
+        <div className="activity-grid">
+          <div className="progress-widget">
+            <div className="widget-header">
+              <strong>Daily target progress</strong>
+              <span>{progressPercent}%</span>
             </div>
-
-            <div className="floating">
-              <span className="icon">👤</span>
-              <input value={form.user} readOnly placeholder=" " />
-              <label>User</label>
+            <p>{totalEntries} of {dailyGoal} entries completed</p>
+            <div className="progress-bar">
+              <span style={{ width: `${progressPercent}%` }}></span>
             </div>
-
-            <div className="floating">
-              <span className="icon">📍</span>
-              <select name="zone" value={form.zone} onChange={handleChange}>
-                <option value=""></option>
-                <option>A</option>
-                <option>B</option>
-              </select>
-              <label>Zone</label>
-            </div>
-
-            <div className="floating">
-              <span className="icon">🚚</span>
-              <input name="trolleyNo" value={form.trolleyNo} onChange={handleChange} placeholder=" " />
-              <label>Trolley No</label>
-            </div>
-
-            <div className="floating">
-              <span className="icon">📦</span>
-              <input name="productionOrder" value={form.productionOrder} onChange={handleChange} placeholder=" " />
-              <label>Production Order</label>
-            </div>
-
-            <div className="floating">
-              <span className="icon">🔢</span>
-              <input name="qty" value={form.qty} onChange={handleChange} placeholder=" " />
-              <label>Individual Capacity</label>
-            </div>
-
           </div>
 
-          <div className="form-right">
-
-            <div className="floating">
-              <span className="icon">⏱</span>
-              <input value={form.shift} readOnly />
-              <label>Shift</label>
+          <div className="progress-widget">
+            <div className="widget-header">
+              <strong>Data completeness</strong>
+              <span>{dataCompleteness}%</span>
             </div>
-
-            <div className="floating">
-              <span className="icon">⚙️</span>
-              <select name="process" value={form.process} onChange={handleChange}>
-                <option value=""></option>
-                <option>Batch Making</option>
-                <option>Dyeing</option>
-              </select>
-              <label>Process</label>
+            <p>{dataCompleteness}% of entries have key production fields</p>
+            <div className="progress-bar accent">
+              <span style={{ width: `${dataCompleteness}%` }}></span>
             </div>
-
-            <div className="floating">
-              <span className="icon">📝</span>
-              <input name="remark" value={form.remark} onChange={handleChange} placeholder=" " />
-              <label>Remark</label>
-            </div>
-
-            <div className="floating">
-              <span className="icon">🧵</span>
-              <input name="bigRoll" value={form.bigRoll} onChange={handleChange} placeholder=" " />
-              <label>Big Roll</label>
-            </div>
-
           </div>
 
+          <div className="activity-card">
+            <div className="widget-header">
+              <strong>Scan activity</strong>
+              <span>{scanActivityCount} events</span>
+            </div>
+            <div className="activity-list">
+              {recentScans.length ? (
+                recentScans.map((event, index) => (
+                  <div key={index} className="activity-item">
+                    <span>{event.label}</span>
+                    <strong>{event.time}</strong>
+                  </div>
+                ))
+              ) : (
+                <div className="activity-empty">No scan activity yet.</div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* TABLE */}
-        <h4>Scanned Data</h4>
+        <div className="scanner-panel-wrapper">
+          <div className={`scanner-panel ${scannerOpen ? "open" : "minimized"}`}>
+            <div className="scanner-header">
+              <div>
+                <strong>Scanner console</strong>
+                <p className="scanner-status">
+                  {scannerOpen ? "Camera ready for scan" : "Scanner minimized"}
+                </p>
+              </div>
+              <button className="scanner-toggle" onClick={() => (scannerOpen ? stopScanner() : setScannerOpen(true))}>
+                {scannerOpen ? "Close" : "Open"}
+              </button>
+            </div>
 
-        <div className="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th></th>
-                <th>Trolley No</th>
-                <th>Remarks</th>
-                <th>Prod Order</th>
-                <th>Qty</th>
-                <th>Big Roll</th>
-                <th>Material</th>
-                <th>Description</th>
-              </tr>
-            </thead>
+            <div className="scanner-body">
+              <div className="upload-row">
+                <label className="upload-card">
+                  <span>Upload PO</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileUpload(e, "productionOrder")}
+                  />
+                </label>
+                <label className="upload-card">
+                  <span>Upload Trolley</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileUpload(e, "trolleyNo")}
+                  />
+                </label>
+              </div>
 
-            <tbody>
-              {data.map((item, index) => (
-                <tr key={index}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.includes(index)}
-                      onChange={() => handleCheckbox(index)}
-                    />
-                  </td>
-                  <td>{item.trolleyNo}</td>
-                  <td>{item.remark}</td>
-                  <td>{item.productionOrder}</td>
-                  <td>{item.qty}</td>
-                  <td>{item.bigRoll}</td>
-                  <td>{item.material}</td>
-                  <td>{item.description}</td>
+              <video id="reader"></video>
+
+              <div className="button-grid">
+                <button className="post" onClick={() => startScanner("productionOrder")}>Scan Production Order</button>
+                <button className="post" onClick={() => startScanner("trolleyNo")}>Scan Trolley No</button>
+                <button className="delete" onClick={stopScanner}>Stop Scan</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="form-block">
+          <div className="form-wrapper">
+            <div className="form-left">
+              <div className="floating">
+                <span className="icon">📅</span>
+                <input
+                  type="date"
+                  name="date"
+                  value={form.date}
+                  onChange={handleChange}
+                  placeholder=" "
+                />
+                <label>Date</label>
+              </div>
+
+              <div className="floating">
+                <span className="icon">👤</span>
+                <input value={form.user} readOnly placeholder=" " />
+                <label>User</label>
+              </div>
+
+              <div className="floating">
+                <span className="icon">📍</span>
+                <select name="zone" value={form.zone} onChange={handleChange}>
+                  <option value=""></option>
+                  <option>A</option>
+                  <option>B</option>
+                </select>
+                <label>Zone</label>
+              </div>
+
+              <div className="floating">
+                <span className="icon">🚚</span>
+                <input name="trolleyNo" value={form.trolleyNo} onChange={handleChange} placeholder=" " />
+                <label>Trolley No</label>
+              </div>
+
+              <div className="floating">
+                <span className="icon">📦</span>
+                <input name="productionOrder" value={form.productionOrder} onChange={handleChange} placeholder=" " />
+                <label>Production Order</label>
+              </div>
+
+              <div className="floating">
+                <span className="icon">🔢</span>
+                <input name="qty" value={form.qty} onChange={handleChange} placeholder=" " />
+                <label>Individual Capacity</label>
+              </div>
+            </div>
+
+            <div className="form-right">
+              <div className="floating">
+                <span className="icon">⏱</span>
+                <input value={form.shift} readOnly />
+                <label>Shift</label>
+              </div>
+
+              <div className="floating">
+                <span className="icon">⚙️</span>
+                <select name="process" value={form.process} onChange={handleChange}>
+                  <option value=""></option>
+                  <option>Batch Making</option>
+                  <option>Dyeing</option>
+                </select>
+                <label>Process</label>
+              </div>
+
+              <div className="floating">
+                <span className="icon">📝</span>
+                <input name="remark" value={form.remark} onChange={handleChange} placeholder=" " />
+                <label>Remark</label>
+              </div>
+
+              <div className="floating">
+                <span className="icon">🧵</span>
+                <input name="bigRoll" value={form.bigRoll} onChange={handleChange} placeholder=" " />
+                <label>Big Roll</label>
+              </div>
+            </div>
+          </div>
+
+          <div className="btn-center action-row">
+            <button className="delete" onClick={handleDelete}>Delete Selected</button>
+            <div className="action-group">
+              {editIndex !== null && (
+                <button className="delete secondary" onClick={handleCancelEdit}>
+                  Cancel Edit
+                </button>
+              )}
+              <button className="post" onClick={handleAdd}>
+                {editIndex !== null ? "Update Entry" : "Post Entry"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="table-section">
+          <div className="table-header">
+            <h4>Scanned Data</h4>
+            <p>Review and manage all scanned production entries in one modern dashboard.</p>
+          </div>
+
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Trolley No</th>
+                  <th>Remarks</th>
+                  <th>Prod Order</th>
+                  <th>Qty</th>
+                  <th>Big Roll</th>
+                  <th>Material</th>
+                  <th>Description</th>
+                  <th>Edit</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* BUTTONS */}
-        <div className="btn-center">
-          <button className="delete" onClick={handleDelete}>
-            Delete Selected
-          </button>
-          <button className="post" onClick={handleAdd}>
-            Post
-          </button>
+              </thead>
+              <tbody>
+                {data.map((item, index) => (
+                  <tr key={index} className={editIndex === index ? "editing-row" : ""} onDoubleClick={() => handleEdit(index)}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedRows.includes(index)}
+                        onChange={() => handleCheckbox(index)}
+                      />
+                    </td>
+                    <td>{item.trolleyNo}</td>
+                    <td>{item.remark}</td>
+                    <td>{item.productionOrder}</td>
+                    <td>{item.qty}</td>
+                    <td>{item.bigRoll}</td>
+                    <td>{item.material}</td>
+                    <td>{item.description}</td>
+                    <td>
+                      <button className="row-edit" onClick={() => handleEdit(index)}>
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
       </div>
